@@ -88,7 +88,7 @@ class AuditControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(10L))
                 .andExpect(jsonPath("$[0].userId").value(2L))
-                .andExpect(jsonPath("$[0].action").value("READ"))
+                .andExpect(jsonPath("$[0].action").value("BOOK_RENTED"))
                 .andExpect(jsonPath("$[0].libraryBookId").value(5L));
     }
 
