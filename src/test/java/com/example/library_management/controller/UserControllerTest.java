@@ -1,5 +1,6 @@
 package com.example.library_management.controller;
 
+import com.example.library_management.dto.LoginDTO;
 import com.example.library_management.dto.UpdateUserDTO;
 import com.example.library_management.dto.UserDTO;
 import com.example.library_management.launch.Main;
@@ -8,14 +9,15 @@ import com.example.library_management.model.User;
 import com.example.library_management.security.JwtUtil;
 import com.example.library_management.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
@@ -41,27 +43,26 @@ class UserControllerTest {
     private UserService userService;
 
     @Autowired
-    @Qualifier("mockUserMapper")
-    private UserMapper userMapper;
-
-    @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private UserMapper userMapper;
+
     @Test
-    void registerUser_validInput_returnsToken() throws Exception {
-        UserDTO dto = new UserDTO(null, "user", "pass12345", "USER");
+    void registerUser_validInput() throws Exception {
+        UserDTO dto = new UserDTO(null, "Viktor13", "pass12345", "USER");
         User user = new User();
-        String token = "jwt-token";
 
         when(userMapper.toEntity(dto)).thenReturn(user);
-        when(userService.register(any(), eq("USER"))).thenReturn(token);
+        Mockito.doNothing().when(userService).register(any(User.class), eq("USER"));
+
 
         mockMvc.perform(post("/api/users/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andDo(print())
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.token").value(token));
+        .andExpect(content().string("Пользователь успешно зарегистрирован"));
     }
 
     @Test
@@ -75,6 +76,33 @@ class UserControllerTest {
     }
 
     @Test
+    void loginUser_validCredentials_returnsToken() throws Exception {
+        LoginDTO loginDTO = new LoginDTO("user", "pass12345");
+        String token = "jwt-token";
+
+        when(userService.login(any(LoginDTO.class))).thenReturn(token);
+
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value(token));
+    }
+
+    @Test
+    void loginUser_invalidCredentials_returnsUnauthorized() throws Exception {
+        LoginDTO loginDTO = new LoginDTO("user", "wrongpass");
+
+        when(userService.login(any(LoginDTO.class))).thenThrow(new BadCredentialsException("Неверные учетные данные"));
+
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginDTO)))
+                .andExpect(status().isUnauthorized());
+    }
+
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     void updateUserPartially_adminCanUpdate() throws Exception {
         UpdateUserDTO updateDTO = new UpdateUserDTO("newName", "pass12345", "ADMIN");
@@ -86,6 +114,17 @@ class UserControllerTest {
                 .andExpect(content().string("Данные пользователя обновлены"));
 
         Mockito.verify(userService).updatePartUser(eq(1L), refEq(updateDTO));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void updateUserPartially_withEmptyFields_returnsBadRequest() throws Exception {
+        UpdateUserDTO dto = new UpdateUserDTO(" ", " ", "");
+
+        mockMvc.perform(patch("/api/users/update/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -113,10 +152,20 @@ class UserControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
+    void deleteUser_notFound_returnsNotFound() throws Exception {
+        Mockito.doThrow(new EntityNotFoundException("Пользователь не найден"))
+                .when(userService).deleteById(999L);
+
+        mockMvc.perform(delete("/api/users/999"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void deleteUser_withoutAdminRole_returnsForbidden() throws Exception {
         UserDTO dto = new UserDTO(null, "user", "pass12345", "USER");
 
-        String validJwtToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiLQktC40LrRgtC-0YAg0JDQvdC00YDQtdC40YciLCJyb2xlcyI6WyJVU0VSIl0sImlhdCI6MTc0NjM5MDE5MSwiZXhwIjoxNzQ2OTkwMTkxfQ.7vpzOwLhj5QU-x_-fvnIeB5QOoEgi65QMADBO-Gj6vM";
+        String validJwtToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiLQn9C-0LvRjNC30L7QstCw0YLQtdC70YwxIiwicm9sZXMiOlsiVVNFUiJdLCJpYXQiOjE3NDcwNTU0NDMsImV4cCI6MTc0NzY1NTQ0M30.CZHVGfypEWB2o3qWyJv0IlUGtaoneix3ZZYQsl7gIU8";
 
         mockMvc.perform(delete("/api/users/1")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -14,11 +14,12 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.mockito.Mockito;
+import org.springframework.context.annotation.Primary;
 
 @Configuration
 public class TestConfig {
 
-    @Bean(name = "mockUserMapper")
+    @Bean
     public UserMapper userMapper() {
         return Mockito.mock(UserMapper.class);
     }
@@ -43,6 +44,7 @@ public class TestConfig {
         return Mockito.mock(LibraryBookService.class);
     }
 
+    @Primary
     @Bean
     public CategoryService categoryService() {
         return Mockito.mock(CategoryService.class);

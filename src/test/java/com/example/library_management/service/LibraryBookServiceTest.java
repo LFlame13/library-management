@@ -97,7 +97,7 @@ class LibraryBookServiceTest {
     }
 
     @Test
-    void testDeleteLibraryBook_MarksAsDeletedAndSkipsDeletionIfNoCopiesLeft() {
+    void testDeleteLibraryBook_MarksAsDeletedAndSkipsDeletion() {
         when(libraryBookDAO.findById(1L)).thenReturn(Optional.of(libraryBook));
         libraryBook.setStatus(LibraryBook.BookStatus.AVAILABLE);
 
@@ -106,6 +106,14 @@ class LibraryBookServiceTest {
         assertEquals(LibraryBook.BookStatus.DELETED, libraryBook.getStatus());
         verify(libraryBookDAO).update(libraryBook);
         verify(bookInfoDAO, never()).delete(any());
+    }
+
+    @Test
+    void testDeleteLibraryBook_ThrowsIfRented() {
+        libraryBook.setStatus(BookStatus.RENTED);
+        when(libraryBookDAO.findById(1L)).thenReturn(Optional.of(libraryBook));
+
+        assertThrows(IllegalStateException.class, () -> libraryBookService.deleteLibraryBook(1L));
     }
 
     @Test
@@ -135,5 +143,19 @@ class LibraryBookServiceTest {
         when(libraryBookDAO.findById(1L)).thenReturn(Optional.of(libraryBook));
 
         assertThrows(IllegalArgumentException.class, () -> libraryBookService.updateBookInfo(1L, dto));
+    }
+
+    @Test
+    void testUpdateBookInfo_CategoryNotFound() {
+        UpdateBookInfoDTO dto = new UpdateBookInfoDTO();
+        dto.setBookInfoId(1L);
+        dto.setTitle("Updated Title");
+        dto.setAuthor("Updated Author");
+        dto.setCategoryId(999L);
+
+        when(libraryBookDAO.findById(1L)).thenReturn(Optional.of(libraryBook));
+        when(categoryDAO.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> libraryBookService.updateBookInfo(1L, dto));
     }
 }

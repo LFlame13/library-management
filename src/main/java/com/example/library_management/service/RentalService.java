@@ -117,14 +117,21 @@ public class RentalService {
     }
 
      //Получить просроченные аренды (не возвращены и дата уже прошла)
-    public List<RentalDTO> getOverdueRentals() {
-        List<RentalDTO> overdueRentals = rentalDAO.findAll().stream()
-                .filter(r -> r.getReturnedAt() == null && r.getDueDate().isBefore(LocalDateTime.now()))
-                .map(rentalMapper::toDTO)
-                .toList();
-        log.info("Запрашиваются просроченные аренды: найдено {} просроченных аренды", overdueRentals.size());
-        return overdueRentals;
-    }
+     public List<RentalDTO> getOverdueRentalsByUser(Long userId) {
+         List<Rental> overdueRentals = rentalDAO.findOverdueByUserId(userId);
+         if (overdueRentals == null || overdueRentals.isEmpty()) {
+             log.info("Просроченные аренды для пользователя с ID '{}' не найдены", userId);
+             throw new EntityNotFoundException("Просроченные аренды для пользователя не найдены");
+         }
+         List<RentalDTO> rentalDTOs = overdueRentals.stream()
+                 .map(rentalMapper::toDTO)
+                 .toList();
+
+         log.info("Запрашиваются просроченные аренды пользователя с ID '{}'. Найдено {} записей", userId, rentalDTOs.size());
+
+         return rentalDTOs;
+     }
+
 
     public List<Rental> getRentalsByUser(Long userId) {
         List<Rental> rentals = rentalDAO.findByUserId(userId);

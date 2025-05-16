@@ -4,6 +4,7 @@ import com.example.library_management.dao.RentalDAO;
 import com.example.library_management.dao.RoleDAO;
 import com.example.library_management.dao.UserDAO;
 import com.example.library_management.dao.UserRoleDAO;
+import com.example.library_management.dto.LoginDTO;
 import com.example.library_management.dto.UpdateUserDTO;
 import com.example.library_management.model.*;
 import com.example.library_management.security.JwtUtil;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -43,7 +45,6 @@ class UserServiceTest {
 
     @InjectMocks
     private UserService userService;
-
     private User user;
     private Role role;
 
@@ -63,14 +64,65 @@ class UserServiceTest {
     void register_ValidUser_ReturnsToken() {
         when(passwordEncoder.encode(anyString())).thenReturn("hashedPassword");
         when(roleDAO.findByName(RoleType.ROLE_USER)).thenReturn(Optional.of(role));
-        when(jwtUtil.generateToken(eq("testuser"), anyList())).thenReturn("token123");
 
-        String token = userService.register(user, "user");
+        userService.register(user, "user");
 
         verify(userDAO).save(user);
         verify(userRoleDAO).save(any(UserRole.class));
-        assertEquals("token123", token);
     }
+
+    @Test
+    void login_ValidCredentials_ReturnsToken() {
+        user.setPasswordHash("hashedPassword");
+
+        Role userRole = new Role();
+        userRole.setName(RoleType.ROLE_USER);
+        UserRole ur = new UserRole();
+        ur.setUser(user);
+        ur.setRole(userRole);
+        user.setUserRoles(List.of(ur));
+
+        when(userDAO.findByUsername("testuser")).thenReturn(user);
+        when(passwordEncoder.matches("password", "hashedPassword")).thenReturn(true);
+        when(jwtUtil.generateToken(eq("testuser"), eq(List.of("USER")))).thenReturn("mockedToken");
+
+        LoginDTO loginDTO = new LoginDTO();
+        loginDTO.setUsername("testuser");
+        loginDTO.setPassword("password");
+
+        String token = userService.login(loginDTO);
+
+        assertEquals("mockedToken", token);
+    }
+
+    @Test
+    void login_WrongPassword_ThrowsException() {
+        user.setPasswordHash("hashedPassword");
+        when(userDAO.findByUsername("testuser")).thenReturn(user);
+        when(passwordEncoder.matches("wrongPass", "hashedPassword")).thenReturn(false);
+
+        LoginDTO dto = new LoginDTO();
+        dto.setUsername("testuser");
+        dto.setPassword("wrongPass");
+
+        assertThrows(BadCredentialsException.class, () -> {
+            userService.login(dto);
+        });
+    }
+
+    @Test
+    void login_UserNotFound_ThrowsException() {
+        when(userDAO.findByUsername("unknown")).thenReturn(null);
+
+        LoginDTO dto = new LoginDTO();
+        dto.setUsername("unknown");
+        dto.setPassword("123456");
+
+        assertThrows(UsernameNotFoundException.class, () -> {
+            userService.login(dto);
+        });
+    }
+
 
     @Test
     void register_InvalidRole_ThrowsException() {

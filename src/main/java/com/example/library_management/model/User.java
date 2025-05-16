@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Entity
-@Table(name = "users", schema = "library_db")
+@Table(name = "users", schema = "public")
 @Getter
 @Setter
 @NoArgsConstructor

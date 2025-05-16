@@ -1,7 +1,6 @@
 package com.example.library_management.dao;
 
 import com.example.library_management.model.BookInfo;
-import com.example.library_management.model.Category;
 import org.springframework.stereotype.Repository;
 
 import jakarta.persistence.EntityManager;

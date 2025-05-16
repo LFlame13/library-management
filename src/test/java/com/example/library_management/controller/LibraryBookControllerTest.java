@@ -6,6 +6,7 @@ import com.example.library_management.dto.UpdateBookInfoDTO;
 import com.example.library_management.launch.Main;
 import com.example.library_management.service.LibraryBookService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -19,7 +20,9 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -54,6 +57,13 @@ class LibraryBookControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "USER")
+    void getAllBooks_forbiddenForUser() throws Exception {
+        mockMvc.perform(get("/api/books/all"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     void addNewBook_returnsSuccessMessage() throws Exception {
         NewLibraryBookRequestDTO newBookRequest = new NewLibraryBookRequestDTO();
@@ -69,6 +79,22 @@ class LibraryBookControllerTest {
                 .andExpect(content().string("Новая книга успешно добавлена"));
     }
 
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void addNewBook_forbiddenForUser() throws Exception {
+        NewLibraryBookRequestDTO newBookRequest = new NewLibraryBookRequestDTO();
+        newBookRequest.setTitle("New Book");
+        newBookRequest.setAuthor("Author Name");
+        newBookRequest.setCategoryId(1L);
+        newBookRequest.setSerialNumber(123456L);
+
+        mockMvc.perform(post("/api/books")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(newBookRequest)))
+                .andExpect(status().isForbidden());
+    }
+
     @Test
     @WithMockUser(roles = "ADMIN")
     void getBookById_returnsBook() throws Exception {
@@ -79,6 +105,17 @@ class LibraryBookControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.serialNumber").value(123456L));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getBookById_notFound() throws Exception {
+        when(libraryBookService.getBookDTOById(99L))
+                .thenThrow(new EntityNotFoundException("Книга с ID 99 не найдена"));
+
+        mockMvc.perform(get("/api/books/{id}", 99L))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Книга с ID 99 не найдена"));
     }
 
     @Test
@@ -99,9 +136,42 @@ class LibraryBookControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
+    void updateBookInfo_bookNotFound() throws Exception {
+        UpdateBookInfoDTO updateInfo = new UpdateBookInfoDTO();
+        updateInfo.setTitle("Updated");
+        updateInfo.setAuthor("Author");
+        updateInfo.setCategoryId(1L);
+        updateInfo.setBookInfoId(999L);
+
+        doThrow(new EntityNotFoundException("Книга с ID 999 не найдена"))
+                .when(libraryBookService).updateBookInfo(eq(999L), any(UpdateBookInfoDTO.class));
+
+        mockMvc.perform(put("/api/books/{id}", 999L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateInfo)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Книга с ID 999 не найдена"));
+    }
+
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void deleteBook_returnsSuccessMessage() throws Exception {
+        doNothing().when(libraryBookService).deleteLibraryBook(1L);
+
         mockMvc.perform(delete("/api/books/{id}", 1L))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Книга и информация по ней успешно удалена"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void deleteBook_bookRented_throwsError() throws Exception {
+        doThrow(new IllegalStateException("Нельзя удалить книгу, она сейчас в аренде"))
+                .when(libraryBookService).deleteLibraryBook(1L);
+
+        mockMvc.perform(delete("/api/books/{id}", 1L))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Нельзя удалить книгу, она сейчас в аренде"));
     }
 }

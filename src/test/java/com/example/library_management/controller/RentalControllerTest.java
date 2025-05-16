@@ -7,6 +7,7 @@ import com.example.library_management.model.Rental;
 import com.example.library_management.model.User;
 import com.example.library_management.service.RentalService;
 import com.example.library_management.service.UserService;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -63,6 +64,21 @@ class RentalControllerTest {
                 .andExpect(content().string("Книга успешно арендована"));
     }
 
+    @Test
+    @WithMockUser(username = "user1", roles = "USER")
+    void rentBook_bookNotFound_returnsNotFound() throws Exception {
+        Long bookId = 999L;
+        String username = "user1";
+
+        User user = new User();
+        user.setUsername(username);
+        when(userService.findByUsername(username)).thenReturn(user);
+        doThrow(new EntityNotFoundException("Книга не найдена")).when(rentalService).rentBook(any(), eq(bookId));
+
+        mockMvc.perform(post("/api/rentals/rent/{bookId}", bookId))
+                .andExpect(status().isNotFound());
+    }
+
 
     @Test
     @WithMockUser(username = "user1", roles = "USER")
@@ -80,6 +96,23 @@ class RentalControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "user1", roles = "USER")
+    void returnBook_bookNotFound_returnsNotFound() throws Exception {
+        Long bookId = 999L;
+        String username = "user1";
+
+        User user = new User();
+        user.setUsername(username);
+
+        when(userService.findByUsername(username)).thenReturn(user);
+        doThrow(new EntityNotFoundException("Книга не найдена"))
+                .when(rentalService).returnBook(eq(bookId), eq(user));
+
+        mockMvc.perform(post("/api/rentals/return/{bookId}", bookId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     void getAllRentals_returnsRentalDTOList() throws Exception {
         Rental rental = new Rental();
@@ -91,6 +124,13 @@ class RentalControllerTest {
         mockMvc.perform(get("/api/rentals/all"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(dto.getId()));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void getAllRentals_userCannotAccessAdminEndpoint_returnsForbidden() throws Exception {
+        mockMvc.perform(get("/api/rentals/all"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -149,12 +189,25 @@ class RentalControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void getOverdueRentals_returnsList() throws Exception {
+        Long userId = 1L;
         RentalDTO dto = new RentalDTO(1L, 2L, 3L, LocalDateTime.now().minusDays(10), LocalDateTime.now().minusDays(5), null);
 
-        when(rentalService.getOverdueRentals()).thenReturn(List.of(dto));
+        when(rentalService.getOverdueRentalsByUser(userId)).thenReturn(List.of(dto));
 
-        mockMvc.perform(get("/api/rentals/overdue"))
+        mockMvc.perform(get("/api/rentals/overdue/{userId}", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(dto.getId()));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getOverdueRentals_userHasNoOverdue_returnsNotFound() throws Exception {
+        Long userId = 123L;
+
+        when(rentalService.getOverdueRentalsByUser(userId))
+                .thenThrow(new EntityNotFoundException("Просроченные аренды для пользователя не найдены"));
+
+        mockMvc.perform(get("/api/rentals/overdue/{userId}", userId))
+                .andExpect(status().isNotFound());
     }
 }

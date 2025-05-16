@@ -4,6 +4,7 @@ import com.example.library_management.dao.AuditLogDAO;
 import com.example.library_management.model.AuditLog;
 import com.example.library_management.model.LibraryBook;
 import com.example.library_management.model.User;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
@@ -35,7 +36,7 @@ class AuditServiceTest {
         LibraryBook book = new LibraryBook();
         book.setId(100L);
 
-        String action = "взял книгу";
+        String action = "BOOK_RENTED";
 
         auditService.logAction(user, book, action);
 
@@ -93,6 +94,20 @@ class AuditServiceTest {
     }
 
     @Test
+    void getLogsByUser_emptyList_throwsException() {
+        User user = new User();
+        user.setId(5L);
+        user.setUsername("no_logs_user");
+
+        when(auditLogDAO.findByUser(user)).thenReturn(List.of());
+
+        EntityNotFoundException ex = assertThrows(EntityNotFoundException.class, () ->
+                auditService.getLogsByUser(user));
+
+        assertEquals("Логов для пользователя 5 не найдено", ex.getMessage());
+    }
+
+    @Test
     void getLogsByUser_returnsList() {
         User user = new User();
         user.setUsername("reader");
@@ -103,5 +118,15 @@ class AuditServiceTest {
 
         assertEquals(1, result.size());
         verify(auditLogDAO).findByUser(user);
+    }
+
+    @Test
+    void getLogsByBookId_emptyList_throwsException() {
+        when(auditLogDAO.findByBookId(999L)).thenReturn(List.of());
+
+        EntityNotFoundException ex = assertThrows(EntityNotFoundException.class, () ->
+                auditService.getLogsByBookId(999L));
+
+        assertEquals("Логов для книги с ID 999 не найдено", ex.getMessage());
     }
 }

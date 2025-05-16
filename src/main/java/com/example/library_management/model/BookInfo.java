@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "book_info", schema = "library_db")
+@Table(name = "book_info", schema = "public")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,7 +23,7 @@ public class BookInfo {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "title", nullable = false, unique = true)
+    @Column(name = "title", nullable = false)
     private String title;
 
     @Column(name = "author", nullable = false)

@@ -2,7 +2,6 @@ package com.example.library_management.dao;
 
 import com.example.library_management.model.LibraryBook;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -23,9 +22,12 @@ public class LibraryBookDAO implements GenericDAO<LibraryBook, Long> {
 
     @Override
     public List<LibraryBook> findAll() {
-        TypedQuery<LibraryBook> query = entityManager.createQuery("SELECT lb FROM LibraryBook lb", LibraryBook.class);
+        TypedQuery<LibraryBook> query = entityManager.createQuery(
+                "SELECT lb FROM LibraryBook lb WHERE lb.status <> :status", LibraryBook.class);
+        query.setParameter("status", LibraryBook.BookStatus.DELETED);
         return query.getResultList();
     }
+
 
     @Override
     public void save(LibraryBook libraryBook) {
@@ -38,7 +40,6 @@ public class LibraryBookDAO implements GenericDAO<LibraryBook, Long> {
     }
 
     @Override
-    @Transactional
     public void delete(LibraryBook libraryBook) {
         entityManager.remove(
                 entityManager.contains(libraryBook) ? libraryBook : entityManager.merge(libraryBook)

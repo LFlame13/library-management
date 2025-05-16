@@ -4,6 +4,7 @@ import com.example.library_management.dao.RentalDAO;
 import com.example.library_management.dao.RoleDAO;
 import com.example.library_management.dao.UserDAO;
 import com.example.library_management.dao.UserRoleDAO;
+import com.example.library_management.dto.LoginDTO;
 import com.example.library_management.dto.UpdateUserDTO;
 import com.example.library_management.model.Rental;
 import com.example.library_management.model.Role;
@@ -14,6 +15,7 @@ import com.example.library_management.security.JwtUtil;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -44,7 +46,7 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
-    public String register(User user, String roleName) {
+    public void register(User user, String roleName) {
         roleName = "ROLE_" + roleName.trim().toUpperCase();
         if (userDAO.findByUsername(user.getUsername()) != null) {
             throw new IllegalArgumentException("Имя пользователя уже занято");
@@ -71,10 +73,27 @@ public class UserService implements UserDetailsService {
         userRoleDAO.save(userRole);
 
         log.info("Пользователь '{}' зарегистрирован с ролью '{}'", user.getUsername(), roleType);
+    }
 
-        List<String> roles = List.of(roleType.name().replace("ROLE_", ""));
+    //Логин
+    @Transactional
+    public String login(LoginDTO loginDTO) {
+        User user = userDAO.findByUsername(loginDTO.getUsername());
+        if (user == null) {
+            throw new UsernameNotFoundException("Пользователь не найден");
+        }
+
+        if (!passwordEncoder.matches(loginDTO.getPassword(), user.getPasswordHash())) {
+            throw new BadCredentialsException("Неверный пароль");
+        }
+
+        List<String> roles = user.getUserRoles().stream()
+                .map(userRole -> userRole.getRole().getName().name().replace("ROLE_", ""))
+                .toList();
+
         return jwtUtil.generateToken(user.getUsername(), roles);
     }
+
 
     // Обновление данных
     @Transactional
@@ -145,7 +164,6 @@ public class UserService implements UserDetailsService {
     }
 
 
-    // loadUserByUsername UserDetailsService
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         log.info("Попытка загрузить пользователя с именем '{}'", username);

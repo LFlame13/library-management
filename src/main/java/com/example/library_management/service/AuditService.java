@@ -42,8 +42,12 @@ public class AuditService {
 
     // Получить всю историю действий
     public List<AuditLog> getAllLogs() {
+        List<AuditLog> logs = auditLogDAO.findAll();
+        if (logs.isEmpty()) {
+            throw new EntityNotFoundException("Логи отсутствуют");
+        }
         log.info("Получение всей истории действий");
-        return auditLogDAO.findAll();
+        return logs;
     }
 
 

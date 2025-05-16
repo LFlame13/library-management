@@ -36,13 +36,9 @@ public class LibraryBookService {
         this.libraryBookMapper = libraryBookMapper;
     }
 
-    // Получить все книги
+    // Получить все книги без удаленных
     public List<LibraryBookDTO> getAllBooks() {
-        List<LibraryBook> books = libraryBookDAO.findAll()
-                .stream()
-                .filter(book -> book.getStatus() != BookStatus.DELETED)
-                .collect(Collectors.toList());
-
+        List<LibraryBook> books = libraryBookDAO.findAll();
         return books.stream()
                 .map(libraryBookMapper::toDTO)
                 .collect(Collectors.toList());
@@ -60,9 +56,6 @@ public class LibraryBookService {
         LibraryBook book = getBookEntityById(id);
         return libraryBookMapper.toDTO(book);
     }
-
-
-
 
     @Transactional
     public void addFullBook(String title, String author, Long categoryId, Long serialNumber) {

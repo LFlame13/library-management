@@ -51,7 +51,7 @@ public class DataConfig {
         properties.setProperty("hibernate.hbm2ddl.auto", env.getProperty("spring.jpa.hibernate.ddl-auto"));
         properties.setProperty("hibernate.show_sql", env.getProperty("spring.jpa.show-sql"));
         properties.setProperty("hibernate.format_sql", env.getProperty("spring.jpa.properties.hibernate.format_sql"));
-        properties.setProperty("hibernate.default_schema", "library_db");
+        properties.setProperty("hibernate.default_schema", "public");
 
         em.setJpaProperties(properties);
         return em;

@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "roles", schema = "library_db")
+@Table(name = "roles", schema = "public")
 @Getter
 @Setter
 @NoArgsConstructor

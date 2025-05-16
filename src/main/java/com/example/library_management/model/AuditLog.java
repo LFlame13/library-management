@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "audit_log", schema = "library_db")
+@Table(name = "audit_log", schema = "public")
 @Getter
 @Setter
 @NoArgsConstructor

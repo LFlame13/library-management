@@ -154,15 +154,18 @@ class RentalServiceTest {
 
     @Test
     void getOverdueRentals_returnsOnlyOverdue() {
+        Long userId = 1L;
         Rental rental = new Rental();
+        rental.setUser(new User());
+        rental.getUser().setId(userId);
         rental.setReturnedAt(null);
         rental.setDueDate(LocalDateTime.now().minusDays(1)); // просрочено
 
         RentalDTO dto = new RentalDTO();
-        when(rentalDAO.findAll()).thenReturn(List.of(rental));
+        when(rentalDAO.findOverdueByUserId(userId)).thenReturn(List.of(rental));
         when(rentalMapper.toDTO(rental)).thenReturn(dto);
 
-        List<RentalDTO> result = rentalService.getOverdueRentals();
+        List<RentalDTO> result = rentalService.getOverdueRentalsByUser(userId);
 
         assertEquals(1, result.size());
         assertSame(dto, result.get(0));

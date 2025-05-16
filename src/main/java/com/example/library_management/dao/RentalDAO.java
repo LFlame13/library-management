@@ -63,4 +63,12 @@ public class RentalDAO implements GenericDAO<Rental, Long> {
         query.setParameter("userId", userId);
         return query.getResultList();
     }
+
+    public List<Rental> findOverdueByUserId(Long userId) {
+        TypedQuery<Rental> query = entityManager.createQuery(
+                "SELECT r FROM Rental r WHERE r.user.id = :userId AND r.returnedAt IS NULL AND r.dueDate < CURRENT_TIMESTAMP",
+                Rental.class);
+        query.setParameter("userId", userId);
+        return query.getResultList();
+    }
 }
