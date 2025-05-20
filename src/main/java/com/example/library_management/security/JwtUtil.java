@@ -14,7 +14,7 @@ import java.util.List;
 public class JwtUtil {
 
     private final Key jwtSecretKey;
-    private final long EXPIRATION_TIME = 600_000 * 1000;
+    private final long EXPIRATION_TIME = 20L * 24 * 60 * 60 * 1000;
 
     public JwtUtil(Key jwtSecretKey) {
         this.jwtSecretKey = jwtSecretKey;

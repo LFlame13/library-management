@@ -165,7 +165,7 @@ class UserControllerTest {
     void deleteUser_withoutAdminRole_returnsForbidden() throws Exception {
         UserDTO dto = new UserDTO(null, "user", "pass12345", "USER");
 
-        String validJwtToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiLQn9C-0LvRjNC30L7QstCw0YLQtdC70YwxIiwicm9sZXMiOlsiVVNFUiJdLCJpYXQiOjE3NDcwNTU0NDMsImV4cCI6MTc0NzY1NTQ0M30.CZHVGfypEWB2o3qWyJv0IlUGtaoneix3ZZYQsl7gIU8";
+        String validJwtToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiLQktCv0KfQldCh0JvQkNCSIiwicm9sZXMiOlsiVVNFUiJdLCJpYXQiOjE3NDc3NzI5MTEsImV4cCI6MTc0OTUwMDkxMX0.9t_fuEBq4w1zre4ecKTTMBs2P0OruXiUk9ITXvLp4b4";
 
         mockMvc.perform(delete("/api/users/1")
                         .contentType(MediaType.APPLICATION_JSON)
