@@ -1,5 +1,6 @@
 package com.example.library_management.service;
 
+import com.example.library_management.dao.AuditLogDAO;
 import com.example.library_management.dao.RentalDAO;
 import com.example.library_management.dao.RoleDAO;
 import com.example.library_management.dao.UserDAO;
@@ -42,6 +43,9 @@ class UserServiceTest {
 
     @Mock
     private RentalDAO rentalDAO;
+
+    @Mock
+    private AuditLogDAO auditLogDAO;
 
     @InjectMocks
     private UserService userService;
@@ -194,6 +198,17 @@ class UserServiceTest {
         when(userDAO.findById(userId)).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> userService.deleteById(userId));
+    }
+
+    @Test
+    void deleteById_UserHasAuditLogs_ThrowsIllegalStateException() {
+        Long userId = 1L;
+        when(userDAO.findById(userId)).thenReturn(Optional.of(user));
+        when(auditLogDAO.existsByUserId(userId)).thenReturn(true);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> userService.deleteById(userId));
+        assertTrue(ex.getMessage().contains("Есть связанные записи в журнале аудита"));
+        verify(userDAO, never()).delete(any());
     }
 
 

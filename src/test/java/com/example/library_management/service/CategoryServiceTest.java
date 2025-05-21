@@ -122,6 +122,24 @@ class CategoryServiceTest {
     }
 
     @Test
+    void updateCategory_parentIsSelf_throwsException() {
+        Category existing = new Category();
+        existing.setId(1L);
+        existing.setName("Category");
+
+        CategoryDTO dto = new CategoryDTO(1L, "Category", 1L);
+
+        when(categoryDAO.findById(1L)).thenReturn(Optional.of(existing));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            categoryService.updateCategory(dto);
+        });
+
+        assertEquals("Категория не может быть родителем самой себя", ex.getMessage());
+        verify(categoryDAO, never()).update(any());
+    }
+
+    @Test
     void deleteCategory_success() {
         Category category = new Category();
         category.setId(1L);

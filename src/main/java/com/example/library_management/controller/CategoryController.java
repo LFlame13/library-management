@@ -92,6 +92,8 @@ public class CategoryController {
             @Parameter(description = "ID родительской категории", example = "1")
             @PathVariable Long parentId
     ) {
+        categoryService.getCategoryById(parentId);
+
         List<Category> subcategories = categoryService.getSubcategories(parentId);
         log.info("Получено {} подкатегорий для родителя с ID {}", subcategories.size(), parentId);
         return ResponseEntity.ok(subcategories);

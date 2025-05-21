@@ -57,4 +57,12 @@ public class AuditLogDAO implements GenericDAO<AuditLog, Long> {
         query.setParameter("bookId", bookId);
         return query.getResultList();
     }
+
+    public boolean existsByUserId(Long userId) {
+        String jpql = "SELECT COUNT(a) FROM AuditLog a WHERE a.user.id = :userId";
+        Long count = entityManager.createQuery(jpql, Long.class)
+                .setParameter("userId", userId)
+                .getSingleResult();
+        return count != null && count > 0;
+    }
 }

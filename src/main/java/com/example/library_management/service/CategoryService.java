@@ -72,9 +72,14 @@ public class CategoryService {
         existing.setName(dto.getName());
 
         if (dto.getParentId() != null) {
+            if (dto.getParentId().equals(dto.getId())) {
+                throw new IllegalArgumentException("Категория не может быть родителем самой себя");
+            }
             Category parent = categoryDAO.findById(dto.getParentId())
                     .orElseThrow(() -> new EntityNotFoundException("Родительская категория не найдена"));
             existing.setParent(parent);
+        } else {
+            existing.setParent(null);
         }
 
         categoryDAO.update(existing);

@@ -1,5 +1,6 @@
 package com.example.library_management.service;
 
+import com.example.library_management.dao.AuditLogDAO;
 import com.example.library_management.dao.RentalDAO;
 import com.example.library_management.dao.RoleDAO;
 import com.example.library_management.dao.UserDAO;
@@ -34,14 +35,16 @@ public class UserService implements UserDetailsService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final RentalDAO rentalDAO;
+    private final AuditLogDAO auditLogDAO;
 
-    public UserService(UserDAO userDAO, RoleDAO roleDAO, UserRoleDAO userRoleDAO, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, RentalDAO rentalDAO) {
+    public UserService(UserDAO userDAO, RoleDAO roleDAO, UserRoleDAO userRoleDAO, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, RentalDAO rentalDAO, AuditLogDAO auditLogDAO) {
         this.userDAO = userDAO;
         this.roleDAO = roleDAO;
         this.userRoleDAO = userRoleDAO;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.rentalDAO = rentalDAO;
+        this.auditLogDAO = auditLogDAO;
 
     }
 
@@ -156,6 +159,11 @@ public class UserService implements UserDetailsService {
                     .orElse("неизвестно");
 
             throw new IllegalStateException("Нельзя удалить пользователя. Он не вернул книги: " + books);
+        }
+
+        boolean hasAuditLogs = auditLogDAO.existsByUserId(id);
+        if (hasAuditLogs) {
+            throw new IllegalStateException("Нельзя удалить пользователя. Есть связанные записи в журнале аудита.");
         }
 
         userRoleDAO.deleteByUserId(id);
